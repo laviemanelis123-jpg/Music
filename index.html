@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudioForge DAW</title>
+<style>
+  :root{--bg:#0a0a0f;--panel:#161620;--panel2:#1e1e2c;--accent:#7c5cff;--accent2:#00d9ff;--accent3:#ff5c8a;--pad:#232332;--text:#eee;--dim:#8a8aa0;--border:#2a2a3a}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:radial-gradient(ellipse at top,#161622,var(--bg));color:var(--text);padding:14px}
+  h1{font-size:22px;margin:0 0 2px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+  .subtitle{font-size:11px;color:var(--dim);margin-bottom:16px}
+  section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+  h2{font-size:12px;color:var(--accent2);margin:0 0 10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-weight:600}
+  button:hover{border-color:var(--accent)}
+  button:disabled{opacity:.35}
+  button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff}
+  button.danger{background:#3a1520;border-color:#c0392b;color:#ff8899}
+  input[type=range]{width:90px;accent-color:var(--accent)}
+  select{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px}
+  .pads{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+  .pad{background:var(--pad);border-radius:10px;padding:16px 4px;text-align:center;font-size:11px;cursor:pointer;user-select:none;border:1px solid var(--border);font-weight:600}
+  .pad:active,.pad.active{background:linear-gradient(135deg,var(--accent),var(--accent2));transform:scale(.96)}
+  .pad .sub{display:block;font-size:8px;color:var(--dim);margin-top:2px;font-weight:400}
+  .pad.active .sub{color:rgba(255,255,255,.8)}
+  .track{background:var(--panel2);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid var(--border)}
+  .track-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .track-name{font-weight:700;font-size:12px;color:var(--accent2)}
+  canvas{width:100%;height:50px;background:#050508;border-radius:6px;margin-top:6px}
+  label{font-size:10px;color:var(--dim);font-weight:600}
+  .fx-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:10px;margin-top:8px}
+  .fx-item{display:flex;flex-direction:column;gap:4px;font-size:10px;color:var(--dim);font-weight:600}
+  .fx-item input{width:100%}
+  #status{font-size:11px;color:var(--accent2);font-weight:600}
+  .transport{position:sticky;top:0;background:rgba(10,10,15,.92);backdrop-filter:blur(8px);padding:8px 0;z-index:5;border-radius:10px}
+  .synth-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:10px;margin-top:8px;background:#0d0d14;border-radius:10px;padding:10px}
+  .badge{display:inline-block;background:linear-gradient(135deg,var(--accent),var(--accent3));font-size:9px;padding:2px 7px;border-radius:20px;margin-right:4px;font-weight:700}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tab{padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;background:var(--panel2);border:1px solid var(--border);font-weight:600}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none}
+</style>
+</head>
+<body>
+
+<h1>⚡ StudioForge</h1>
+<div class="subtitle">DAW אישי בדפדפן — תופים, סינתים, באסים, אפקטים ומיקס</div>
+
+<div class="transport row">
+  <button id="playAll" class="primary">▶ נגן הכל</button>
+  <button id="stopAll">■ עצור</button>
+  <span id="status">מוכן</span>
+</div>
+
+<section>
+  <h2>🥁 תופים <span class="badge">12 סאונדים</span></h2>
+  <div class="row">
+    <label>וואליום <input type="range" id="drumVol" min="0" max="1" step="0.01" value="0.8"></label>
+    <button id="startRec">⏺ הקלט לופ</button>
+    <button id="stopRec" class="danger" disabled>⏹ עצור</button>
+  </div>
+  <div class="pads" id="pads"></div>
+</section>
+
+<section>
+  <h2>🎛️ מנוע באס/סינת <span class="badge">4 מנועים</span></h2>
+  <div class="tabs" id="synthTabs"></div>
+  <div class="synth-panel" id="synthControls"></div>
+  <div class="row" style="margin-top:10px">
+    <label>אוקטבה</label>
+    <select id="bassOctave"><option value="1">נמוך מאוד</option><option value="2" selected>נמוך</option><option value="3">בינוני</option><option value="4">גבוה</option></select>
+    <button id="startSynthRec">⏺ הקלט לטראק</button>
+    <button id="stopSynthRec" class="danger" disabled>⏹ עצור</button>
+  </div>
+  <div class="pads" id="bassPads" style="grid-template-columns:repeat(8,1fr)"></div>
+</section>
+
+<section>
+  <h2>📁 טראקים</h2>
+  <div class="row">
+    <input type="file" id="fileInput" accept="audio/*" multiple>
+    <button id="addMicTrack">🎤 הקלט מיקרופון</button>
+  </div>
+  <div id="tracks"></div>
+</section>
+
+<section>
+  <h2>🎚️ אפקטים ומיקס <span class="badge">10 אפקטים</span></h2>
+  <div class="row">
+    <label>בחר טראק</label>
+    <select id="fxTrackSelect"><option value="">— אין טראקים —</option></select>
+  </div>
+  <div class="fx-group">
+    <div class="fx-item">ריוורב<input type="range" id="reverbWet" min="0" max="1" step="0.01" value="0"></div>
+    <div class="fx-item">דיליי זמן<input type="range" id="delayTime" min="0" max="1" step="0.01" value="0"></div>
+    <div class="fx-item">דיליי משוב<input type="range" id="delayFeedback" min="0" max="0.9" step="0.01" value="0.3"></div>
+    <div class="fx-item">EQ באס<input type="range" id="eqLow" min="-20" max="20" step="1" value="0"></div>
+    <div class="fx-item">EQ טרבל<input type="range" id="eqHigh" min="-20" max="20" step="1" value="0"></div>
+    <div class="fx-item">דיסטורשן<input type="range" id="distortion" min="0" max="100" step="1" value="0"></div>
+    <div class="fx-item">פילטר LP<input type="range" id="filterFreq" min="200" max="20000" step="100" value="20000"></div>
+    <div class="fx-item">קורוס<input type="range" id="chorusAmt" min="0" max="1" step="0.01" value="0"></div>
+    <div class="fx-item">פלאנג'ר<input type="range" id="flangerAmt" min="0" max="1" step="0.01" value="0"></div>
+    <div class="fx-item">ביטקראשר<input type="range" id="bitcrush" min="0" max="1" step="0.01" value="0"></div>
+    <div class="fx-item">קומפרסור<input type="range" id="compAmt" min="0" max="1" step="0.01" value="0"></div>
+    <div class="fx-item">פאן<input type="range" id="panner" min="-1" max="1" step="0.01" value="0"></div>
+    <div class="fx-item">מהירות<input type="range" id="playbackRate" min="0.5" max="2" step="0.01" value="1"></div>
+    <div class="fx-item">עוצמה<input type="range" id="trackGain" min="0" max="1.5" step="0.01" value="1"></div>
+  </div>
+</section>
+
+<section>
+  <h2>💾 ייצוא</h2>
+  <div class="row"><button id="exportBtn" class="primary">ייצא מיקס ל-WAV</button></div>
+</section>
+
+<script>
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const masterGain = ctx.createGain();
+masterGain.gain.value = 1;
+masterGain.connect(ctx.destination);
+let tracks = [], trackIdCounter = 0;
+
+/* ================= DRUMS (12 sounds) ================= */
+const padDefs = [
+  {name:'Kick 808',sub:'punchy',type:'kick'},
+  {name:'Kick Deep',sub:'sub-heavy',type:'kickdeep'},
+  {name:'Snare',sub:'crisp',type:'snare'},
+  {name:'Rim Shot',sub:'sharp',type:'rim'},
+  {name:'Hi-Hat',sub:'closed',type:'hihat'},
+  {name:'Open Hat',sub:'airy',type:'openhat'},
+  {name:'808 Sub',sub:'deep bass',type:'sub'},
+  {name:'Clap',sub:'layered',type:'clap'},
+  {name:'Tom Low',sub:'deep',type:'tom'},
+  {name:'Tom High',sub:'tight',type:'tomhi'},
+  {name:'Perc',sub:'click',type:'perc'},
+  {name:'Crash',sub:'cymbal',type:'crash'}
+];
+let drumRecordDest=null;
+
+function noiseBuffer(sec){
+  const size = Math.max(1,Math.floor(ctx.sampleRate*sec));
+  const buf = ctx.createBuffer(1,size,ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<size;i++) d[i]=Math.random()*2-1;
+  return buf;
+}
+
+function playDrum(type){
+  const t = ctx.currentTime;
+  const dg = ctx.createGain();
+  dg.gain.value = parseFloat(document.getElementById('drumVol').value);
+  dg.connect(masterGain);
+  if(drumRecordDest) dg.connect(drumRecordDest);
+
+  if(type==='kick' || type==='kickdeep' || type==='sub'){
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type='sine';
+    const sf = type==='kick'?150:type==='kickdeep'?110:60;
+    const ef = type==='kick'?40:type==='kickdeep'?30:32;
+    const dur = type==='sub'?0.6:0.35;
+    osc.frequency.setValueAtTime(sf,t);
+    osc.frequency.exponentialRampToValueAtTime(ef,t+dur*0.5);
+    g.gain.setValueAtTime(1,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    osc.connect(g); g.connect(dg);
+    osc.start(t); osc.stop(t+dur+0.05);
+  } else if(type==='snare' || type==='clap' || type==='rim'){
+    const dur = type==='rim'?0.08:0.2;
+    const noise = ctx.createBufferSource(); noise.buffer = noiseBuffer(dur);
+    const hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = type==='clap'?1200:type==='rim'?2000:1000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(1,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    noise.connect(hp); hp.connect(g); g.connect(dg);
+    noise.start(t); noise.stop(t+dur+0.02);
+    if(type==='snare'){
+      const osc = ctx.createOscillator(); const og = ctx.createGain();
+      osc.type='triangle'; osc.frequency.setValueAtTime(180,t); osc.frequency.exponentialRampToValueAtTime(90,t+0.1);
+      og.gain.setValueAtTime(0.5,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      osc.connect(og); og.connect(dg); osc.start(t); osc.stop(t+0.2);
+    }
+  } else if(type==='hihat' || type==='openhat' || type==='crash'){
+    const dur = type==='crash'?1.2:type==='openhat'?0.3:0.08;
+    const noise = ctx.createBufferSource(); noise.buffer = noiseBuffer(dur);
+    const hpf = ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=7000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(type==='crash'?0.5:0.6,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    noise.connect(hpf); hpf.connect(g); g.connect(dg);
+    noise.start(t); noise.stop(t+dur+0.05);
+  } else if(type==='tom' || type==='tomhi'){
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type='sine';
+    const sf = type==='tom'?180:260, ef = type==='tom'?80:130;
+    osc.frequency.setValueAtTime(sf,t); osc.frequency.exponentialRampToValueAtTime(ef,t+0.25);
+    g.gain.setValueAtTime(0.9,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+    osc.connect(g); g.connect(dg); osc.start(t); osc.stop(t+0.35);
+  } else if(type==='perc'){
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.type='triangle'; osc.frequency.setValueAtTime(900,t); osc.frequency.exponentialRampToValueAtTime(300,t+0.08);
+    g.gain.setValueAtTime(0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+    osc.connect(g); g.connect(dg); osc.start(t); osc.stop(t+0.15);
+  }
+}
+const padsDiv = document.getElementById('pads');
+padDefs.forEach(p=>{
+  const el = document.createElement('div'); el.className='pad';
+  el.innerHTML = p.name+'<span class="sub">'+p.sub+'</span>';
+  const trig=(e)=>{if(e)e.preventDefault();playDrum(p.type);el.classList.add('active');setTimeout(()=>el.classList.remove('active'),120);};
+  el.addEventListener('mousedown',trig); el.addEventListener('touchstart',trig);
+  padsDiv.appendChild(el);
+});
+document.getElementById('startRec').addEventListener('click', async ()=>{
+  await ctx.resume();
+  drumRecordDest = ctx.createMediaStreamDestination();
+  masterGain.connect(drumRecordDest);
+  window._drumRec = new MediaRecorder(drumRecordDest.stream);
+  const chunks=[];
+  window._drumRec.ondataavailable=e=>chunks.push(e.data);
+  window._drumRec.onstop=async()=>{
+    const blob=new Blob(chunks,{type:'audio/webm'});
+    const audioBuf=await ctx.decodeAudioData(await blob.arrayBuffer());
+    addTrack('לופ תופים',audioBuf);
+    masterGain.disconnect(drumRecordDest); drumRecordDest=null;
+  };
+  window._drumRec.start();
+  document.getElementById('startRec').disabled=true;
+  document.getElementById('stopRec').disabled=false;
+  setStatus('מקליט לופ תופים...');
+});
+document.getElementById('stopRec').addEventListener('click', ()=>{
+  if(window._drumRec && window._drumRec.state!=='inactive') window._drumRec.stop();
+  document.getElementById('startRec').disabled=false;
+  document.getElementById('stopRec').disabled=true;
+  setStatus('לופ נשמר');
+});
+
+/* ================= SYNTH ENGINES (4 types) ================= */
+const noteNames=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function noteFreq(note,octave){ const idx=noteNames.indexOf(note); const midi=(octave+1)*12+idx; return 440*Math.pow(2,(midi-69)/12); }
+let synthRecordDest=null;
+let currentEngine = 'analog';
+
+const engineDefs = {
+  analog: {label:'🎛️ אנלוגי (Moog)', controls:[
+    {id:'osc1Type',label:'גל 1',type:'select',opts:['sawtooth','square','sine','triangle']},
+    {id:'osc2Type',label:'גל 2',type:'select',opts:['square','sawtooth','sine','triangle']},
+    {id:'oscDetune',label:'דיטיון',type:'range',min:-24,max:24,step:1,val:-12},
+    {id:'filterCutoff',label:'קאטוף',type:'range',min:80,max:8000,step:10,val:1200},
+    {id:'filterQ',label:'רזוננס',type:'range',min:0,max:25,step:0.5,val:6},
+    {id:'synthRelease',label:'Release',type:'range',min:0.05,max:2,step:0.01,val:0.3}
+  ]},
+  sub808: {label:'🔊 808 סאב', controls:[
+    {id:'subGlide',label:'גלייד',type:'range',min:0,max:0.3,step:0.01,val:0.08},
+    {id:'subDrive',label:'דרייב',type:'range',min:0,max:50,step:1,val:15},
+    {id:'subDecay',label:'דיקיי',type:'range',min:0.1,max:2,step:0.01,val:0.8}
+  ]},
+  fm: {label:'✨ FM Synth', controls:[
+    {id:'fmRatio',label:'יחס מודולציה',type:'range',min:0.5,max:8,step:0.1,val:2},
+    {id:'fmIndex',label:'עומק FM',type:'range',min:0,max:2000,step:10,val:400},
+    {id:'fmRelease',label:'Release',type:'range',min:0.05,max:2,step:0.01,val:0.4}
+  ]},
+  pluck: {label:'🎸 Pluck (גיטרה/קורדה)', controls:[
+    {id:'pluckDamping',label:'דעיכה',type:'range',min:0.9,max:0.999,step:0.001,val:0.98},
+    {id:'pluckBrightness',label:'בהירות',type:'range',min:0.1,max:1,step:0.01,val:0.5}
+  ]}
+};
+
+const tabsDiv = document.getElementById('synthTabs');
+Object.keys(engineDefs).forEach(key=>{
+  const tab = document.createElement('div');
+  tab.className='tab'+(key===currentEngine?' active':'');
+  tab.textContent = engineDefs[key].label;
+  tab.addEventListener('click',()=>{ currentEngine=key; renderSynthControls(); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); tab.classList.add('active'); });
+  tabsDiv.appendChild(tab);
+});
+
+function renderSynthControls(){
+  const div = document.getElementById('synthControls');
+  div.innerHTML='';
+  engineDefs[currentEngine].controls.forEach(c=>{
+    const wrap = document.createElement('div'); wrap.className='fx-item';
+    if(c.type==='select'){
+      wrap.innerHTML = c.label;
+      const sel = document.createElement('select'); sel.id=c.id;
+      c.opts.forEach(o=>{ const opt=document.createElement('option'); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
+      wrap.appendChild(sel);
+    } else {
+      wrap.innerHTML = c.label;
+      const inp = document.createElement('input'); inp.type='range'; inp.id=c.id;
+      inp.min=c.min; inp.max=c.max; inp.step=c.step; inp.value=c.val;
+      wrap.appendChild(inp);
+    }
+    div.appendChild(wrap);
+  });
+}
+renderSynthControls();
+
+function getVal(id, fallback){ const el=document.getElementById(id); return el?parseFloat(el.value):fallback; }
+function getStr(id, fallback){ const el=document.getElementById(id); return el?el.value:fallback; }
+
+function playSynthNote(note, octave){
+  const t = ctx.currentTime;
+  const freq = noteFreq(note, octave);
+  const out = ctx.createGain(); out.gain.value=0.4;
+  out.connect(masterGain);
+  if(synthRecordDest) out.connect(synthRecordDest);
+
+  if(currentEngine==='analog'){
+    const osc1=ctx.createOscillator(); osc1.type=getStr('osc1Type','sawtooth'); osc1.frequency.value=freq;
+    const osc2=ctx.createOscillator(); osc2.type=getStr('osc2Type','square'); osc2.frequency.value=freq; osc2.detune.value=getVal('oscDetune',-12)*100;
+    const g1=ctx.createGain(); g1.gain.value=0.5; const g2=ctx.createGain(); g2.gain.value=0.5;
+    const filter=ctx.createBiquadFilter(); filter.type='lowpass';
+    const cutoff=getVal('filterCutoff',1200), release=getVal('synthRelease',0.3);
+    filter.frequency.setValueAtTime(cutoff*0.3,t); filter.frequency.linearRampToValueAtTime(cutoff,t+0.05);
+    filter.Q.value=getVal('filterQ',6);
+    const env=ctx.createGain(); env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(1,t+0.01); env.gain.setTargetAtTime(0,t+0.01,release);
+    osc1.connect(g1); osc2.connect(g2); g1.connect(filter); g2.connect(filter); filter.connect(env); env.connect(out);
+    osc1.start(t); osc2.start(t); const st=t+release+1.2; osc1.stop(st); osc2.stop(st);
+
+  } else if(currentEngine==='sub808'){
+    const glide=getVal('subGlide',0.08), decay=getVal('subDecay',0.8), drive=getVal('subDrive',15);
+    const osc=ctx.createOscillator(); osc.type='sine';
+    osc.frequency.setValueAtTime(freq*2,t); osc.frequency.exponentialRampToValueAtTime(freq,t+glide);
+    const shaper=ctx.createWaveShaper(); shaper.curve=makeDistortionCurve(drive);
+    const env=ctx.createGain(); env.gain.setValueAtTime(1,t); env.gain.exponentialRampToValueAtTime(0.001,t+decay);
+    osc.connect(shaper); shaper.connect(env); env.connect(out);
+    osc.start(t); osc.stop(t+decay+0.1);
+
+  } else if(currentEngine==='fm'){
+    const ratio=getVal('fmRatio',2), idx=getVal('fmIndex',400), release=getVal('fmRelease',0.4);
+    const carrier=ctx.createOscillator(); carrier.type='sine'; carrier.frequency.value=freq;
+    const modulator=ctx.createOscillator(); modulator.type='sine'; modulator.frequency.value=freq*ratio;
+    const modGain=ctx.createGain(); modGain.gain.value=idx;
+    modulator.connect(modGain); modGain.connect(carrier.frequency);
+    const env=ctx.createGain(); env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(0.8,t+0.01); env.gain.setTargetAtTime(0,t+0.01,release);
+    carrier.connect(env); env.connect(out);
+    carrier.start(t); modulator.start(t);
+    const st=t+release+1; carrier.stop(st); modulator.stop(st);
+
+  } else if(currentEngine==='pluck'){
+    // Karplus-Strong style plucked string using noise burst + feedback delay
+    const damping=getVal('pluckDamping',0.98), bright=getVal('pluckBrightness',0.5);
+    const period=1/freq;
+    const noise=ctx.createBufferSource(); noise.buffer=noiseBuffer(0.02);
+    const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=freq*(1+bright); bp.Q.value=2;
+    const delay=ctx.createDelay(0.05); delay.delayTime.value=period;
+    const feedback=ctx.createGain(); feedback.gain.value=damping;
+    const damp=ctx.createBiquadFilter(); damp.type='lowpass'; damp.frequency.value=freq*4;
+    const env=ctx.createGain(); env.gain.value=1;
+    noise.connect(bp); bp.connect(delay); delay.connect(damp); damp.connect(feedback); feedback.connect(delay);
+    delay.connect(env); env.connect(out);
+    env.gain.setTargetAtTime(0,t+0.05,1.2);
+    noise.start(t); noise.stop(t+0.02);
+  }
+}
+
+const bassNotesScale=['C','D','E','F','G','A','B','C'];
+const bassPadsDiv=document.getElementById('bassPads');
+function buildBassPads(){
+  bassPadsDiv.innerHTML='';
+  const oct=parseInt(document.getElementById('bassOctave').value);
+  bassNotesScale.forEach((note,i)=>{
+    const el=document.createElement('div'); el.className='pad';
+    const octave=oct+(note==='C'&&i===7?1:0);
+    el.textContent=note+octave;
+    const trig=(e)=>{if(e)e.preventDefault();playSynthNote(note,octave);el.classList.add('active');setTimeout(()=>el.classList.remove('active'),150);};
+    el.addEventListener('mousedown',trig); el.addEventListener('touchstart',trig);
+    bassPadsDiv.appendChild(el);
+  });
+}
+document.getElementById('bassOctave').addEventListener('change',buildBassPads);
+buildBassPads();
+
+document.getElementById('startSynthRec').addEventListener('click', async ()=>{
+  await ctx.resume();
+  synthRecordDest=ctx.createMediaStreamDestination();
+  masterGain.connect(synthRecordDest);
+  window._synthRec=new MediaRecorder(synthRecordDest.stream);
+  const chunks=[];
+  window._synthRec.ondataavailable=e=>chunks.push(e.data);
+  window._synthRec.onstop=async()=>{
+    const blob=new Blob(chunks,{type:'audio/webm'});
+    const audioBuf=await ctx.decodeAudioData(await blob.arrayBuffer());
+    addTrack(engineDefs[currentEngine].label,audioBuf);
+    masterGain.disconnect(synthRecordDest); synthRecordDest=null;
+  };
+  window._synthRec.start();
+  document.getElementById('startSynthRec').disabled=true;
+  document.getElementById('stopSynthRec').disabled=false;
+  setStatus('מקליט '+engineDefs[currentEngine].label+'...');
+});
+document.getElementById('stopSynthRec').addEventListener('click', ()=>{
+  if(window._synthRec && window._synthRec.state!=='inactive') window._synthRec.stop();
+  document.getElementById('startSynthRec').disabled=false;
+  document.getElementById('stopSynthRec').disabled=true;
+  setStatus('נשמר כטראק חדש');
+});
+
+/* ================= FILE / MIC TRACKS ================= */
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  for(const file of e.target.files){
+    try{ const audioBuf=await ctx.decodeAudioData(await file.arrayBuffer()); addTrack(file.name,audioBuf); }
+    catch(err){ alert('שגיאה בטעינת: '+file.name); }
+  }
+  e.target.value='';
+});
+let micStream=null, micRecorder=null;
+document.getElementById('addMicTrack').addEventListener('click', async ()=>{
+  const btn=document.getElementById('addMicTrack');
+  if(micRecorder && micRecorder.state==='recording'){ micRecorder.stop(); return; }
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    micRecorder=new MediaRecorder(micStream);
+    const chunks=[];
+    micRecorder.ondataavailable=e=>chunks.push(e.data);
+    micRecorder.onstop=async()=>{
+      const blob=new Blob(chunks,{type:'audio/webm'});
+      const audioBuf=await ctx.decodeAudioData(await blob.arrayBuffer());
+      addTrack('הקלטת מיקרופון',audioBuf);
+      micStream.getTracks().forEach(t=>t.stop());
+      btn.textContent='🎤 הקלט מיקרופון';
+    };
+    micRecorder.start(); btn.textContent='⏹ עצור הקלטה'; setStatus('מקליט מיקרופון...');
+  }catch(err){ alert('לא ניתן לגשת למיקרופון: '+err.message); }
+});
+
+/* ================= TRACK + FX CHAIN ================= */
+function addTrack(name, buffer){
+  const id='track_'+(trackIdCounter++);
+  const gainNode=ctx.createGain(); gainNode.gain.value=1;
+  const eqLow=ctx.createBiquadFilter(); eqLow.type='lowshelf'; eqLow.frequency.value=200; eqLow.gain.value=0;
+  const eqHigh=ctx.createBiquadFilter(); eqHigh.type='highshelf'; eqHigh.frequency.value=3000; eqHigh.gain.value=0;
+  const lowpass=ctx.createBiquadFilter(); lowpass.type='lowpass'; lowpass.frequency.value=20000;
+  const distortion=ctx.createWaveShaper(); distortion.curve=makeDistortionCurve(0); distortion.oversample='4x';
+  const bitcrusher=ctx.createWaveShaper(); bitcrusher.curve=makeBitcrushCurve(0);
+  const compressor=ctx.createDynamicsCompressor(); compressor.threshold.value=0; compressor.ratio.value=1;
+  const panner=ctx.createStereoPanner(); panner.pan.value=0;
+
+  const chorusDelay=ctx.createDelay(0.05); chorusDelay.delayTime.value=0.015;
+  const chorusLFO=ctx.createOscillator(); chorusLFO.frequency.value=1.3;
+  const chorusLFOGain=ctx.createGain(); chorusLFOGain.gain.value=0.004;
+  chorusLFO.connect(chorusLFOGain); chorusLFOGain.connect(chorusDelay.delayTime); chorusLFO.start();
+  const chorusWet=ctx.createGain(); chorusWet.gain.value=0;
+  const chorusDry=ctx.createGain(); chorusDry.gain.value=1;
+
+  const flangerDelay=ctx.createDelay(0.02); flangerDelay.delayTime.value=0.005;
+  const flangerLFO=ctx.createOscillator(); flangerLFO.frequency.value=0.25;
+  const flangerLFOGain=ctx.createGain(); flangerLFOGain.gain.value=0.003;
+  flangerLFO.connect(flangerLFOGain); flangerLFOGain.connect(flangerDelay.delayTime); flangerLFO.start();
+  const flangerWet=ctx.createGain(); flangerWet.gain.value=0;
+  const flangerFeedback=ctx.createGain(); flangerFeedback.gain.value=0.4;
+  flangerDelay.connect(flangerFeedback); flangerFeedback.connect(flangerDelay);
+
+  const reverbNode=ctx.createConvolver(); reverbNode.buffer=makeImpulseResponse(2.5,2.0);
+  const reverbGain=ctx.createGain(); reverbGain.gain.value=0;
+  const dryGain=ctx.createGain(); dryGain.gain.value=1;
+
+  const delayNode=ctx.createDelay(2.0); delayNode.delayTime.value=0;
+  const feedbackNode=ctx.createGain(); feedbackNode.gain.value=0.3;
+  const delayGain=ctx.createGain(); delayGain.gain.value=0;
+
+  gainNode.connect(eqLow); eqLow.connect(eqHigh); eqHigh.connect(distortion);
+  distortion.connect(bitcrusher); bitcrusher.connect(compressor); compressor.connect(lowpass);
+  lowpass.connect(chorusDry); chorusDry.connect(flangerDelay===null?panner:panner);
+  lowpass.connect(chorusDelay); chorusDelay.connect(chorusWet);
+  lowpass.connect(flangerDelay); flangerDelay.connect(flangerWet);
+  chorusDry.connect(panner); chorusWet.connect(panner); flangerWet.connect(panner);
+  panner.connect(dryGain); dryGain.connect(masterGain);
+  panner.connect(reverbNode); reverbNode.connect(reverbGain); reverbGain.connect(masterGain);
+  panner.connect(delayNode); delayNode.connect(feedbackNode); feedbackNode.connect(delayNode);
+  delayNode.connect(delayGain); delayGain.connect(masterGain);
+
+  const track={id,name,buffer,gainNode,eqLow,eqHigh,distortion,bitcrusher,compressor,lowpass,
+    chorusWet,flangerWet,panner,reverbNode,reverbGain,dryGain,delayNode,feedbackNode,delayGain,
+    sourceNode:null,playing:false,playbackRate:1};
+  tracks.push(track);
+  renderTrack(track);
+  refreshFxSelect();
+  setStatus('טראק נוסף: '+name);
+}
+
+function makeDistortionCurve(amount){
+  const k=amount, n=44100, curve=new Float32Array(n), deg=Math.PI/180;
+  for(let i=0;i<n;i++){ const x=i*2/n-1; curve[i]=k===0?x:(3+k)*x*20*deg/(Math.PI+k*Math.abs(x)); }
+  return curve;
+}
+function makeBitcrushCurve(amount){
+  const n=44100, curve=new Float32Array(n);
+  const steps=Math.max(2,Math.round(256*(1-amount)));
+  for(let i=0;i<n;i++){ const x=i*2/n-1; curve[i]=Math.round(x*steps)/steps; }
+  return curve;
+}
+function makeImpulseResponse(duration,decay){
+  const rate=ctx.sampleRate, length=rate*duration;
+  const impulse=ctx.createBuffer(2,length,rate);
+  for(let ch=0;ch<2;ch++){ const data=impulse.getChannelData(ch); for(let i=0;i<length;i++){ data[i]=(Math.random()*2-1)*Math.pow(1-i/length,decay); } }
+  return impulse;
+}
+
+function renderTrack(track){
+  const container=document.getElementById('tracks');
+  const div=document.createElement('div'); div.className='track'; div.id=track.id;
+  div.innerHTML=`<div class="track-head"><span class="track-name">${track.name}</span>
+    <div class="row"><button class="playBtn">▶</button><button class="stopBtn">■</button><button class="delBtn danger">🗑</button></div></div>
+    <canvas></canvas>`;
+  container.appendChild(div);
+  drawWaveform(div.querySelector('canvas'),track.buffer);
+  div.querySelector('.playBtn').addEventListener('click',()=>playTrack(track));
+  div.querySelector('.stopBtn').addEventListener('click',()=>stopTrack(track));
+  div.querySelector('.delBtn').addEventListener('click',()=>{ stopTrack(track); tracks=tracks.filter(t=>t.id!==track.id); div.remove(); refreshFxSelect(); });
+}
+function drawWaveform(canvas,buffer){
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=canvas.clientWidth*dpr; canvas.height=canvas.clientHeight*dpr;
+  const c=canvas.getContext('2d');
+  c.fillStyle='#050508'; c.fillRect(0,0,canvas.width,canvas.height);
+  const data=buffer.getChannelData(0);
+  const step=Math.ceil(data.length/canvas.width);
+  const grad=c.createLinearGradient(0,0,canvas.width,0);
+  grad.addColorStop(0,'#7c5cff'); grad.addColorStop(1,'#00d9ff');
+  c.strokeStyle=grad; c.beginPath();
+  for(let i=0;i<canvas.width;i++){
+    let min=1,max=-1;
+    for(let j=0;j<step;j++){ const v=data[i*step+j]||0; if(v<min)min=v; if(v>max)max=v; }
+    c.moveTo(i,(1+min)*canvas.height/2); c.lineTo(i,(1+max)*canvas.height/2);
+  }
+  c.stroke();
+}
+function playTrack(track){
+  if(track.playing) return;
+  const src=ctx.createBufferSource(); src.buffer=track.buffer; src.playbackRate.value=track.playbackRate;
+  src.connect(track.gainNode); src.start();
+  track.sourceNode=src; track.playing=true;
+  src.onended=()=>{ track.playing=false; };
+}
+function stopTrack(track){ if(track.sourceNode){ try{track.sourceNode.stop();}catch(e){} track.sourceNode=null; } track.playing=false; }
+document.getElementById('playAll').addEventListener('click', async ()=>{ await ctx.resume(); tracks.forEach(playTrack); setStatus('מנגן הכל'); });
+document.getElementById('stopAll').addEventListener('click', ()=>{ tracks.forEach(stopTrack); setStatus('הופסק'); });
+
+/* ================= FX WIRING ================= */
+const fxSelect=document.getElementById('fxTrackSelect');
+function refreshFxSelect(){ fxSelect.innerHTML=tracks.length?tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''):'<option value="">— אין טראקים —</option>'; }
+function currentFxTrack(){ return tracks.find(t=>t.id===fxSelect.value); }
+
+document.getElementById('reverbWet').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.reverbGain.gain.value=parseFloat(e.target.value); });
+document.getElementById('delayTime').addEventListener('input',e=>{ const t=currentFxTrack(); if(t){ t.delayNode.delayTime.value=parseFloat(e.target.value); t.delayGain.gain.value=parseFloat(e.target.value)>0?0.6:0; } });
+document.getElementById('delayFeedback').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.feedbackNode.gain.value=parseFloat(e.target.value); });
+document.getElementById('eqLow').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.eqLow.gain.value=parseFloat(e.target.value); });
+document.getElementById('eqHigh').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.eqHigh.gain.value=parseFloat(e.target.value); });
+document.getElementById('distortion').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.distortion.curve=makeDistortionCurve(parseFloat(e.target.value)); });
+document.getElementById('filterFreq').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.lowpass.frequency.value=parseFloat(e.target.value); });
+document.getElementById('chorusAmt').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.chorusWet.gain.value=parseFloat(e.target.value); });
+document.getElementById('flangerAmt').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.flangerWet.gain.value=parseFloat(e.target.value); });
+document.getElementById('bitcrush').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.bitcrusher.curve=makeBitcrushCurve(parseFloat(e.target.value)); });
+document.getElementById('compAmt').addEventListener('input',e=>{
+  const t=currentFxTrack(); if(!t) return;
+  const amt=parseFloat(e.target.value);
+  t.compressor.threshold.value = -amt*40;
+  t.compressor.ratio.value = 1+amt*11;
+  t.compressor.attack.value = 0.003;
+  t.compressor.release.value = 0.25;
+});
+document.getElementById('panner').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.panner.pan.value=parseFloat(e.target.value); });
+document.getElementById('playbackRate').addEventListener('input',e=>{ const t=currentFxTrack(); if(t){ t.playbackRate=parseFloat(e.target.value); if(t.sourceNode) t.sourceNode.playbackRate.value=t.playbackRate; } });
+document.getElementById('trackGain').addEventListener('input',e=>{ const t=currentFxTrack(); if(t) t.gainNode.gain.value=parseFloat(e.target.value); });
+
+/* ================= EXPORT ================= */
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  if(tracks.length===0){ alert('אין טראקים לייצוא'); return; }
+  setStatus('מייצא...');
+  const maxLen=Math.max(...tracks.map(t=>Math.ceil(t.buffer.length/t.playbackRate)));
+  const offlineCtx=new OfflineAudioContext(2,maxLen,ctx.sampleRate);
+  const offlineMaster=offlineCtx.createGain(); offlineMaster.connect(offlineCtx.destination);
+  tracks.forEach(t=>{
+    const src=offlineCtx.createBufferSource(); src.buffer=t.buffer; src.playbackRate.value=t.playbackRate;
+    const g=offlineCtx.createGain(); g.gain.value=t.gainNode.gain.value;
+    const pan=offlineCtx.createStereoPanner(); pan.pan.value=t.panner.pan.value;
+    src.connect(g); g.connect(pan); pan.connect(offlineMaster); src.start(0);
+  });
+  const rendered=await offlineCtx.startRendering();
+  const wavBlob=bufferToWav(rendered);
+  const url=URL.createObjectURL(wavBlob);
+  const a=document.createElement('a'); a.href=url; a.download='mix.wav'; a.click();
+  URL.revokeObjectURL(url);
+  setStatus('הייצוא הושלם: mix.wav');
+});
+function bufferToWav(buffer){
+  const numCh=buffer.numberOfChannels;
+  const len=buffer.length*numCh*2+44;
+  const arrBuf=new ArrayBuffer(len);
+  const view=new DataView(arrBuf);
+  const writeStr=(o,s)=>{for(let i=0;i<s.length;i++) view.setUint8(o+i,s.charCodeAt(i));};
+  writeStr(0,'RIFF'); view.setUint32(4,len-8,true); writeStr(8,'WAVE');
+  writeStr(12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true);
+  view.setUint16(22,numCh,true); view.setUint32(24,buffer.sampleRate,true);
+  view.setUint32(28,buffer.sampleRate*numCh*2,true); view.setUint16(32,numCh*2,true);
+  view.setUint16(34,16,true); writeStr(36,'data'); view.setUint32(40,len-44,true);
+  let offset=44;
+  for(let i=0;i<buffer.length;i++){
+    for(let ch=0;ch<numCh;ch++){
+      const sample=Math.max(-1,Math.min(1,buffer.getChannelData(ch)[i]));
+      view.setInt16(offset, sample<0?sample*0x8000:sample*0x7FFF, true);
+      offset+=2;
+    }
+  }
+  return new Blob([arrBuf],{type:'audio/wav'});
+}
+function setStatus(msg){ document.getElementById('status').textContent=msg; }
+document.body.addEventListener('click', ()=>{ if(ctx.state==='suspended') ctx.resume(); }, {once:true});
+</script>
+</body>
+</html>
